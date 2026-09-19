@@ -3,11 +3,8 @@ import TodoForm from "../components/TodoForm"
 import TodoList from "../components/TodoList"
 import { useSelector,useDispatch } from "react-redux"
 import { toggleForm,openForm,closeForm } from "../features/ui/uiSlice"
-import {
-  setSearchDate,
-  setFilteredTodos,
-  clearFilter,
-} from "../features/ui/Filterslice" 
+import {setSearchDate,setFilteredTodos,clearFilter} from "../features/ui/Filterslice" 
+import { setEditingTodo } from "../features/ui/editSlice"
 import {
   getTodosByDate,
   getTodosByUser,
@@ -18,7 +15,7 @@ import {
 
 function Todos({ user, onLogout }) {
   const [todos, setTodos] = useState([])
-  const [editingTodo, setEditingTodo] = useState(null)
+  const editingTodo=useSelector((state)=>state.edit.editingTodo)
   const isFormOpen = useSelector((state)=>state.ui.isFormOpen)
   const searchDate = useSelector((state)=>state.filter.searchDate)
   const isFiltering=useSelector((state)=>state.filter.isFiltering)
@@ -63,12 +60,12 @@ function Todos({ user, onLogout }) {
   }
 
   function startEditing(todo) {
-    setEditingTodo(todo)
+    dispatch(setEditingTodo(todo))
     dispatch(openForm())
   }
 
   function cancelEdit() {
-    setEditingTodo(null)
+    dispatch(setEditingTodo(null))
     dispatch(closeForm())
   }
 
@@ -84,7 +81,7 @@ function Todos({ user, onLogout }) {
       )
     )
 
-    setEditingTodo(null)
+    dispatch(setEditingTodo(null))
     dispatch(closeForm())
   }
 
