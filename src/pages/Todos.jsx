@@ -5,6 +5,7 @@ import { useSelector,useDispatch } from "react-redux"
 import { toggleForm,openForm,closeForm } from "../features/ui/uiSlice"
 import {setSearchDate,setFilteredTodos,clearFilter} from "../features/ui/Filterslice" 
 import { setEditingTodo } from "../features/ui/editSlice"
+import { setPage, resetPage } from "../features/ui/PaginationSlice"
 import {
   getTodosByDate,
   getTodosByUser,
@@ -13,6 +14,8 @@ import {
   deleteTodoById,
 } from "../services/todoService"
 
+const PAGE_SIZE = 5
+
 function Todos({ user, onLogout }) {
   const [todos, setTodos] = useState([])
   const editingTodo=useSelector((state)=>state.edit.editingTodo)
@@ -20,7 +23,16 @@ function Todos({ user, onLogout }) {
   const searchDate = useSelector((state)=>state.filter.searchDate)
   const isFiltering=useSelector((state)=>state.filter.isFiltering)
   const filteredTodos=useSelector((state)=>state.filter.filteredTodos)
+  const currentPage = useSelector((state) => state.pagination.currentPage)
   const dispatch=useDispatch();
+
+  const sourceTodos = isFiltering ? filteredTodos : todos
+  const totalPages = Math.max(1, Math.ceil(sourceTodos.length / PAGE_SIZE))
+  const paginatedTodos = sourceTodos.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  )
+
   async function fetchTodos() {
     const data = await getTodosByUser(user.id)
     setTodos(data)
@@ -29,6 +41,12 @@ function Todos({ user, onLogout }) {
   useEffect(() => {
     fetchTodos()
   }, [])
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      dispatch(setPage(totalPages))
+    }
+  }, [totalPages, currentPage, dispatch])
 
   async function addTodo(todo) {
     const savedTodo = await createTodoForUser(user.id, todo)
@@ -46,7 +64,14 @@ function Todos({ user, onLogout }) {
     const data = await getTodosByDate(date,userId)
 
     dispatch(setFilteredTodos(data))
+    dispatch(resetPage())
   }
+
+  function handleClearFilter() {
+    dispatch(clearFilter())
+    dispatch(resetPage())
+  }
+
   async function deleteTodo(id) {
     if (!window.confirm("Are you sure you want to delete this todo?")) {
       return
@@ -130,7 +155,7 @@ function Todos({ user, onLogout }) {
             </h2>
 
             <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">
-              {todos.length}
+              {sourceTodos.length}
             </span>
           </div>
 
@@ -150,7 +175,7 @@ function Todos({ user, onLogout }) {
             </button>
 
             <button
-              onClick={()=>dispatch(clearFilter())}
+              onClick={handleClearFilter}
               className="rounded-lg bg-gray-600 px-4 py-2 text-white"
             >
               Clear
@@ -158,10 +183,34 @@ function Todos({ user, onLogout }) {
           </div>
 
           <TodoList
-            todos={isFiltering ? filteredTodos : todos}
+            todos={paginatedTodos}
             onDeleteTodo={deleteTodo}
             onEditTodo={startEditing}
           />
+
+          {sourceTodos.length > 0 && (
+            <div className="mt-4 flex items-center justify-between">
+              <button
+                onClick={() => dispatch(setPage(currentPage - 1))}
+                disabled={currentPage === 1}
+                className="rounded-lg bg-gray-600 px-3 py-2 text-sm text-white disabled:opacity-40"
+              >
+                Previous
+              </button>
+
+              <span className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                onClick={() => dispatch(setPage(currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className="rounded-lg bg-gray-600 px-3 py-2 text-sm text-white disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </section>
 
       </div>
