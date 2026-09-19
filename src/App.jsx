@@ -3,6 +3,7 @@ import Login from "./pages/Login"
 import Register from "./pages/Register"
 import Todos from "./pages/Todos"
 import { Routes, Route, Navigate } from "react-router-dom"
+import ViewTodo from "./pages/ViewTodo"
 function App() {
   const [user, setUser] = useState(() => {
     try {
@@ -27,6 +28,12 @@ function App() {
       path="/login"
       element={
         <Login onLogin={setUser} />
+      }
+    />
+    <Route
+      path="/viewTodo"
+      element={
+        <ViewTodo />
       }
     />
 
