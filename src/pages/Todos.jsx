@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react"
+import { startTransition, useEffect, useState } from "react"
 import TodoForm from "../components/TodoForm"
 import TodoList from "../components/TodoList"
 import { useSelector,useDispatch } from "react-redux"
 import { toggleForm,openForm,closeForm } from "../features/ui/uiSlice"
-
+import {
+  setSearchDate,
+  setFilteredTodos,
+  clearFilter,
+} from "../features/ui/Filterslice" 
 import {
   getTodosByDate,
   getTodosByUser,
@@ -14,11 +18,11 @@ import {
 
 function Todos({ user, onLogout }) {
   const [todos, setTodos] = useState([])
-  const [filteredTodos, setFilteredTodos] = useState([])
-  const [isFiltering, setIsFiltering] = useState(false)
-  const [searchDate, setSearchDate] = useState("")
   const [editingTodo, setEditingTodo] = useState(null)
   const isFormOpen = useSelector((state)=>state.ui.isFormOpen)
+  const searchDate = useSelector((state)=>state.filter.searchDate)
+  const isFiltering=useSelector((state)=>state.filter.isFiltering)
+  const filteredTodos=useSelector((state)=>state.filter.filteredTodos)
   const dispatch=useDispatch();
   async function fetchTodos() {
     const data = await getTodosByUser(user.id)
@@ -44,16 +48,8 @@ function Todos({ user, onLogout }) {
 
     const data = await getTodosByDate(date,userId)
 
-    setFilteredTodos(data)
-    setIsFiltering(true)
+    dispatch(setFilteredTodos(data))
   }
-
-  function clearFilter() {
-    setFilteredTodos([])
-    setIsFiltering(false)
-    setSearchDate("")
-  }
-
   async function deleteTodo(id) {
     if (!window.confirm("Are you sure you want to delete this todo?")) {
       return
@@ -145,7 +141,7 @@ function Todos({ user, onLogout }) {
             <input
               type="date"
               value={searchDate}
-              onChange={(e) => setSearchDate(e.target.value)}
+              onChange={(e) => dispatch(setSearchDate(e.target.value))}
               className="rounded-lg border border-gray-300 px-3 py-2"
             />
 
@@ -157,7 +153,7 @@ function Todos({ user, onLogout }) {
             </button>
 
             <button
-              onClick={clearFilter}
+              onClick={()=>dispatch(clearFilter())}
               className="rounded-lg bg-gray-600 px-4 py-2 text-white"
             >
               Clear
