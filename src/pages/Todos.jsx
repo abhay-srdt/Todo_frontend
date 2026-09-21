@@ -1,30 +1,28 @@
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import TodoForm from "../components/TodoForm"
 import TodoList from "../components/TodoList"
-import { useSelector,useDispatch } from "react-redux"
-import { toggleForm,openForm,closeForm } from "../features/ui/uiSlice"
-import {setSearchDate,setFilteredTodos,clearFilter} from "../features/ui/Filterslice" 
+import { useSelector, useDispatch } from "react-redux"
+import { toggleForm, openForm, closeForm } from "../features/ui/uiSlice"
+import { setSearchDate, setFilteredTodos, clearFilter } from "../features/ui/Filterslice"
 import { setEditingTodo } from "../features/ui/editSlice"
 import { setPage, resetPage } from "../features/ui/PaginationSlice"
-import {
-  getTodosByDate,
-  getTodosByUser,
-  createTodoForUser,
-  updateTodoById,
-  deleteTodoById,
-} from "../services/todoService"
+import { fetchTodos, addTodo, editTodo, removeTodo } from "../features/ui/Todoslice"
+import { getTodosByDate } from "../services/todoService"
 
 const PAGE_SIZE = 5
 
 function Todos({ user, onLogout }) {
-  const [todos, setTodos] = useState([])
-  const editingTodo=useSelector((state)=>state.edit.editingTodo)
-  const isFormOpen = useSelector((state)=>state.ui.isFormOpen)
-  const searchDate = useSelector((state)=>state.filter.searchDate)
-  const isFiltering=useSelector((state)=>state.filter.isFiltering)
-  const filteredTodos=useSelector((state)=>state.filter.filteredTodos)
+  const todos = useSelector((state) => state.todos.items)
+  const todosStatus = useSelector((state) => state.todos.status)
+  const todosError = useSelector((state) => state.todos.error)
+
+  const editingTodo = useSelector((state) => state.edit.editingTodo)
+  const isFormOpen = useSelector((state) => state.ui.isFormOpen)
+  const searchDate = useSelector((state) => state.filter.searchDate)
+  const isFiltering = useSelector((state) => state.filter.isFiltering)
+  const filteredTodos = useSelector((state) => state.filter.filteredTodos)
   const currentPage = useSelector((state) => state.pagination.currentPage)
-  const dispatch=useDispatch();
+  const dispatch = useDispatch()
 
   const sourceTodos = isFiltering ? filteredTodos : todos
   const totalPages = Math.max(1, Math.ceil(sourceTodos.length / PAGE_SIZE))
@@ -33,14 +31,9 @@ function Todos({ user, onLogout }) {
     currentPage * PAGE_SIZE
   )
 
-  async function fetchTodos() {
-    const data = await getTodosByUser(user.id)
-    setTodos(data)
-  }
-
   useEffect(() => {
-    fetchTodos()
-  }, [])
+    dispatch(fetchTodos(user.id))
+  }, [user.id, dispatch])
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -48,21 +41,14 @@ function Todos({ user, onLogout }) {
     }
   }, [totalPages, currentPage, dispatch])
 
-  async function addTodo(todo) {
-    const savedTodo = await createTodoForUser(user.id, todo)
-
-    setTodos((currentTodos) => [
-      ...currentTodos,
-      savedTodo,
-    ])
+  async function handleAddTodo(todo) {
+    await dispatch(addTodo({ userId: user.id, todo })).unwrap()
     dispatch(closeForm())
   }
 
-  async function fetchTodosByDate(date,userId) {
+  async function fetchTodosByDate(date, userId) {
     if (!date) return
-
-    const data = await getTodosByDate(date,userId)
-
+    const data = await getTodosByDate(date, userId)
     dispatch(setFilteredTodos(data))
     dispatch(resetPage())
   }
@@ -72,16 +58,11 @@ function Todos({ user, onLogout }) {
     dispatch(resetPage())
   }
 
-  async function deleteTodo(id) {
+  async function handleDeleteTodo(id) {
     if (!window.confirm("Are you sure you want to delete this todo?")) {
       return
     }
-
-    await deleteTodoById(id)
-
-    setTodos((currentTodos) =>
-      currentTodos.filter((todo) => todo.id !== id)
-    )
+    dispatch(removeTodo(id))
   }
 
   function startEditing(todo) {
@@ -94,18 +75,8 @@ function Todos({ user, onLogout }) {
     dispatch(closeForm())
   }
 
-  async function updateTodo(updatedTodo) {
-    const savedTodo = await updateTodoById(
-      updatedTodo.id,
-      updatedTodo
-    )
-
-    setTodos((currentTodos) =>
-      currentTodos.map((todo) =>
-        todo.id === savedTodo.id ? savedTodo : todo
-      )
-    )
-
+  async function handleUpdateTodo(updatedTodo) {
+    await dispatch(editTodo(updatedTodo)).unwrap()
     dispatch(setEditingTodo(null))
     dispatch(closeForm())
   }
@@ -133,18 +104,20 @@ function Todos({ user, onLogout }) {
           <h2 className="mb-5 text-xl font-semibold text-gray-900">
             Add Todo
           </h2>
-          <button onClick={()=>dispatch(toggleForm())} 
-            className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700">
-            {isFormOpen? "Close":"New Todo"}
+          <button
+            onClick={() => dispatch(toggleForm())}
+            className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            {isFormOpen ? "Close" : "New Todo"}
           </button>
-        {isFormOpen && (
-          <TodoForm
-            onAddTodo={addTodo}
-            editingTodo={editingTodo}
-            onUpdateTodo={updateTodo}
-            onCancelEdit={cancelEdit}
-          />
-        )}
+          {isFormOpen && (
+            <TodoForm
+              onAddTodo={handleAddTodo}
+              editingTodo={editingTodo}
+              onUpdateTodo={handleUpdateTodo}
+              onCancelEdit={cancelEdit}
+            />
+          )}
         </section>
 
         <section className="rounded-xl bg-white p-6 shadow-sm">
@@ -168,7 +141,7 @@ function Todos({ user, onLogout }) {
             />
 
             <button
-              onClick={() => fetchTodosByDate(searchDate,user.id)}
+              onClick={() => fetchTodosByDate(searchDate, user.id)}
               className="rounded-lg bg-green-600 px-4 py-2 text-white"
             >
               Filter
@@ -182,34 +155,46 @@ function Todos({ user, onLogout }) {
             </button>
           </div>
 
-          <TodoList
-            todos={paginatedTodos}
-            onDeleteTodo={deleteTodo}
-            onEditTodo={startEditing}
-          />
+          {todosStatus === "loading" && (
+            <p className="py-4 text-center text-gray-500">Loading todos...</p>
+          )}
 
-          {sourceTodos.length > 0 && (
-            <div className="mt-4 flex items-center justify-between">
-              <button
-                onClick={() => dispatch(setPage(currentPage - 1))}
-                disabled={currentPage === 1}
-                className="rounded-lg bg-gray-600 px-3 py-2 text-sm text-white disabled:opacity-40"
-              >
-                Previous
-              </button>
+          {todosStatus === "failed" && (
+            <p className="py-4 text-center text-red-600">{todosError}</p>
+          )}
 
-              <span className="text-sm text-gray-600">
-                Page {currentPage} of {totalPages}
-              </span>
+          {todosStatus === "succeeded" && (
+            <>
+              <TodoList
+                todos={paginatedTodos}
+                onDeleteTodo={handleDeleteTodo}
+                onEditTodo={startEditing}
+              />
 
-              <button
-                onClick={() => dispatch(setPage(currentPage + 1))}
-                disabled={currentPage === totalPages}
-                className="rounded-lg bg-gray-600 px-3 py-2 text-sm text-white disabled:opacity-40"
-              >
-                Next
-              </button>
-            </div>
+              {sourceTodos.length > 0 && (
+                <div className="mt-4 flex items-center justify-between">
+                  <button
+                    onClick={() => dispatch(setPage(currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="rounded-lg bg-gray-600 px-3 py-2 text-sm text-white disabled:opacity-40"
+                  >
+                    Previous
+                  </button>
+
+                  <span className="text-sm text-gray-600">
+                    Page {currentPage} of {totalPages}
+                  </span>
+
+                  <button
+                    onClick={() => dispatch(setPage(currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="rounded-lg bg-gray-600 px-3 py-2 text-sm text-white disabled:opacity-40"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </section>
 
