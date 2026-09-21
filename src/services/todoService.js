@@ -1,69 +1,38 @@
-const BASE_URL = "http://localhost:8080/api/todos"
+import api from "./api"
+
 
 export async function getAllTodos() {
-  const response = await fetch(BASE_URL)
-  return response.json()
+  const response = await api.get("/todos")
+  return response.data
 }
 
 export async function getTodosByDate(date,userId) {
-  const response = await fetch(
-    `${BASE_URL}/date/${userId}/${date}`
+  const response = await api.get(
+    `todos/date/${userId}/${date}`
   )
 
-  return response.json()
+  return response.data
 }
 
 export async function createTodo(todo) {
-  const response = await fetch(BASE_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(todo),
-  })
-
-  return response.json()
+  const response = await api.post("/todos",todo)
+  return response.data
 }
-export async function createTodoForUser(
-  userId,
-  todo
-) {
-  const response = await fetch(
-    `${BASE_URL}/user/${userId}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(todo),
-    }
-  )
-
-  return response.json()
+export async function createTodoForUser(userId,todo) {
+  const response = await api.post(`/todos/user/${userId}`, todo)
+  return response.data
 }
 
 export async function updateTodoById(id, todo) {
-  const response = await fetch(
-    `${BASE_URL}/${id}`,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(todo),
-    }
-  )
-
-  return response.json()
+  const response = await api.put(`/todos/${id}`, todo)
+  return response.data
 }
 
 export async function deleteTodoById(id) {
-  await fetch(`${BASE_URL}/${id}`, {
-    method: "DELETE",
-  })
+  await api.delete(`/todos/${id}`)
 }
 
 export async function getTodosByUser(userId){
-  const response = await fetch(`${BASE_URL}/user/${userId}`)
-  return response.json();
+  const response = await api.get(`/todos/user/${userId}`)
+  return response.data;
 }
