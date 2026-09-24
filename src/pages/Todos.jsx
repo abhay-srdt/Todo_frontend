@@ -1,26 +1,72 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import TodoForm from "../components/TodoForm"
 import TodoList from "../components/TodoList"
 import { useSelector, useDispatch } from "react-redux"
 import { toggleForm, openForm, closeForm } from "../features/ui/uiSlice"
-import { setSearchDate, setFilteredTodos, clearFilter } from "../features/ui/Filterslice"
+import { setSearchDate, clearSearchDate } from "../features/ui/Filterslice"
 import { setEditingTodo } from "../features/ui/editSlice"
 import { setPage, resetPage } from "../features/ui/PaginationSlice"
-import { fetchTodos, addTodo, editTodo, removeTodo } from "../features/ui/Todoslice"
-import { getTodosByDate } from "../services/todoService"
+import { getTodosByDate, getTodosByUser, createTodoForUser, updateTodoById, deleteTodoById } from "../services/todoService"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { todoKeys } from "../features/todos/todoQueries"
 
 const PAGE_SIZE = 5
 
 function Todos({ user, onLogout }) {
-  const todos = useSelector((state) => state.todos.items)
-  const todosStatus = useSelector((state) => state.todos.status)
-  const todosError = useSelector((state) => state.todos.error)
+  const queryClient = useQueryClient()
+
+  const {
+    data: todos = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: todoKeys.all(user.id),
+    queryFn: () => getTodosByUser(user.id),
+  })
+
+  const searchDate = useSelector((state) => state.filter.searchDate)
+  const [appliedDate, setAppliedDate] = useState("")
+  const isFiltering = Boolean(appliedDate)
+
+  const {
+    data: filteredTodos = [],
+    isLoading: isFilterLoading,
+    isError: isFilterError,
+    error: filterError,
+  } = useQuery({
+    queryKey: todoKeys.byDate(user.id, appliedDate),
+    queryFn: () => getTodosByDate(appliedDate, user.id),
+    enabled: isFiltering, // only fetch once appliedDate is set — not on every keystroke
+  })
+
+  const activeState = isFiltering
+    ? { isLoading: isFilterLoading, isError: isFilterError, error: filterError }
+    : { isLoading, isError, error }
+
+  const addTodoMutation = useMutation({
+    mutationFn: ({ userId, todo }) => createTodoForUser(userId, todo),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: todoKeys.all(user.id) })
+    },
+  })
+
+  const editTodoMutation = useMutation({
+    mutationFn: (updatedTodo) => updateTodoById(updatedTodo.id, updatedTodo),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: todoKeys.all(user.id) })
+    },
+  })
+
+  const removeTodoMutation = useMutation({
+    mutationFn: (id) => deleteTodoById(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: todoKeys.all(user.id) })
+    },
+  })
 
   const editingTodo = useSelector((state) => state.edit.editingTodo)
   const isFormOpen = useSelector((state) => state.ui.isFormOpen)
-  const searchDate = useSelector((state) => state.filter.searchDate)
-  const isFiltering = useSelector((state) => state.filter.isFiltering)
-  const filteredTodos = useSelector((state) => state.filter.filteredTodos)
   const currentPage = useSelector((state) => state.pagination.currentPage)
   const dispatch = useDispatch()
 
@@ -32,29 +78,25 @@ function Todos({ user, onLogout }) {
   )
 
   useEffect(() => {
-    dispatch(fetchTodos(user.id))
-  }, [user.id, dispatch])
-
-  useEffect(() => {
     if (currentPage > totalPages) {
       dispatch(setPage(totalPages))
     }
   }, [totalPages, currentPage, dispatch])
 
   async function handleAddTodo(todo) {
-    await dispatch(addTodo({ userId: user.id, todo })).unwrap()
+    await addTodoMutation.mutateAsync({ userId: user.id, todo })
     dispatch(closeForm())
   }
 
-  async function fetchTodosByDate(date, userId) {
-    if (!date) return
-    const data = await getTodosByDate(date, userId)
-    dispatch(setFilteredTodos(data))
+  function handleFilter() {
+    if (!searchDate) return
+    setAppliedDate(searchDate)
     dispatch(resetPage())
   }
 
   function handleClearFilter() {
-    dispatch(clearFilter())
+    dispatch(clearSearchDate())
+    setAppliedDate("")
     dispatch(resetPage())
   }
 
@@ -62,7 +104,7 @@ function Todos({ user, onLogout }) {
     if (!window.confirm("Are you sure you want to delete this todo?")) {
       return
     }
-    dispatch(removeTodo(id))
+    removeTodoMutation.mutate(id)
   }
 
   function startEditing(todo) {
@@ -76,7 +118,7 @@ function Todos({ user, onLogout }) {
   }
 
   async function handleUpdateTodo(updatedTodo) {
-    await dispatch(editTodo(updatedTodo)).unwrap()
+    await editTodoMutation.mutateAsync(updatedTodo)
     dispatch(setEditingTodo(null))
     dispatch(closeForm())
   }
@@ -141,7 +183,7 @@ function Todos({ user, onLogout }) {
             />
 
             <button
-              onClick={() => fetchTodosByDate(searchDate, user.id)}
+              onClick={handleFilter}
               className="rounded-lg bg-green-600 px-4 py-2 text-white"
             >
               Filter
@@ -155,15 +197,15 @@ function Todos({ user, onLogout }) {
             </button>
           </div>
 
-          {todosStatus === "loading" && (
+          {activeState.isLoading && (
             <p className="py-4 text-center text-gray-500">Loading todos...</p>
           )}
 
-          {todosStatus === "failed" && (
-            <p className="py-4 text-center text-red-600">{todosError}</p>
+          {activeState.isError && (
+            <p className="py-4 text-center text-red-600">{activeState.error.message}</p>
           )}
 
-          {todosStatus === "succeeded" && (
+          {!activeState.isLoading && !activeState.isError && (
             <>
               <TodoList
                 todos={paginatedTodos}
