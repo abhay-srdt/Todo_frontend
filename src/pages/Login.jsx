@@ -1,85 +1,63 @@
-import { useState } from "react"
-import { loginUser } from "../services/userService"
-import { Link, useNavigate } from "react-router-dom"
 
-function Login({ onLogin }) {
-    const navigate = useNavigate()
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  })
-  const [error,setError]=useState("");
-  function handleChange(event){
-    const {name,value}=event.target;
-    setFormData((current)=>({
-        ...current,
-        [name]:value,
-    }))
-  }
-  async function handleSubmit(event) {
-    event.preventDefault();
-    setError("")
-    const emailRegex=/^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if(!emailRegex.test(formData.email)){
-        setError("Please enter valid email.")
-        return
+import { useNavigate } from "react-router-dom";
+import {
+  generateCodeVerifier,
+  generateCodeChallenge,
+} from "../utils/pkce";
+
+function Login() {
+  const navigate = useNavigate();
+
+  async function handleLogin() {
+    try {
+      const verifier = generateCodeVerifier();
+
+      const challenge = await generateCodeChallenge(verifier);
+
+      sessionStorage.setItem("pkce_verifier", verifier);
+
+      const params = new URLSearchParams({
+        response_type: "code",
+        client_id: "react-todo-app",
+        redirect_uri: "http://localhost:5173/callback",
+        scope: "todos.read todos.write",
+        code_challenge: challenge,
+        code_challenge_method: "S256",
+      });
+
+      window.location.href =
+        `http://localhost:9000/oauth2/authorize?${params.toString()}`;
+    } catch (error) {
+      console.error("OAuth login failed:", error);
     }
-    if(formData.password.length<8){
-        setError("Password must be at least 8 characters")
-        return
-    }
-    try{
-        const user=await loginUser(formData)
-        localStorage.setItem("user",JSON.stringify(user))
-        onLogin(user)
-        navigate("/todos")
-    }catch(err){
-    setError("Invalid email or password.")
   }
-  } 
+
   return (
     <div className="mx-auto mt-20 max-w-md rounded-xl bg-white p-6 shadow">
-      <h2 className="mb-4 text-2xl font-bold">Login</h2>
+      <h1 className="mb-4 text-2xl font-bold text-center">
+        Todo App
+      </h1>
 
-      {error && (
-        <p className="mb-4 text-red-600">{error}</p>
-      )}
+      <p className="mb-6 text-center text-gray-600">
+        Sign in using the Authorization Server
+      </p>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={handleChange}
-          className="w-full rounded border p-2"
-        />
-
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={formData.password}
-          onChange={handleChange}
-          className="w-full rounded border p-2"
-        />
-
-        <button
-          type="submit"
-          className="w-full rounded bg-blue-600 p-2 text-white"
-        >
-          Login
-        </button>
-      </form>
       <button
-           type="button"
-           onClick={() => navigate("/register")}
-           className="text-blue-600"
-       >
-           Don't have an account? Register
-         </button>
+        onClick={handleLogin}
+        className="w-full rounded bg-blue-600 p-2 text-white hover:bg-blue-700"
+      >
+        Login
+      </button>
+
+      <button
+        onClick={() => navigate("/register")}
+        className="mt-4 w-full rounded bg-green-600 p-2 text-white hover:bg-green-700"
+      >
+        Register
+      </button>
     </div>
-  )
+  );
 }
 
 export default Login;
+

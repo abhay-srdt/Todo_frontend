@@ -1,26 +1,16 @@
-import api from "./api"
+import axios from "axios";
 
+const AUTH_SERVER = "http://localhost:9000";
 
-function getErrorMessage(error){
-    return error.response?.data?.message || "Something went wrong.Please try again."
-}
-
-export async function loginUser(credentials) {
-    try{
-        const response = await api.post("/users/login", credentials)
-        return response.data
-    }catch(error){
-         throw new Error(getErrorMessage(error))
-    }
-    
+function getErrorMessage(error) {
+  return error.response?.data?.message || "Something went wrong. Please try again.";
 }
 
 export async function registerUser(user) {
-    try{
-        const response=await api.post("/users/register",user)
-        return response.data
-    }catch(error) {
-        throw new Error(getErrorMessage(error))
-    }  
-
+  try {
+    const response = await axios.post(`${AUTH_SERVER}/register`, user);
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
 }
