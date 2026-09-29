@@ -6,7 +6,7 @@ import { toggleForm, openForm, closeForm } from "../features/ui/uiSlice"
 import { setSearchDate, clearSearchDate } from "../features/ui/Filterslice"
 import { setEditingTodo } from "../features/ui/editSlice"
 import { setPage, resetPage } from "../features/ui/PaginationSlice"
-import { getTodosByDate, getTodosByUser, createTodoForUser, updateTodoById, deleteTodoById } from "../services/todoService"
+import { getTodosByDate, getTodosByUser, createTodoForUser, updateTodoById, deleteTodoById, setTodoCompleted } from "../services/todoService"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { todoKeys } from "../features/todos/todoQueries"
 import ProfileButton from "../components/ProfileButton"
@@ -64,7 +64,12 @@ function Todos({ user, onLogout }) {
       queryClient.invalidateQueries({ queryKey: todoKeys.all(user.id) })
     },
   })
-
+    const toggleTodoMutation = useMutation({
+    mutationFn: ({ id, completed }) => setTodoCompleted(id, completed),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: todoKeys.all(user.id) })
+    },
+  })
   const editingTodo = useSelector((state) => state.edit.editingTodo)
   const isFormOpen = useSelector((state) => state.ui.isFormOpen)
   const currentPage = useSelector((state) => state.pagination.currentPage)
@@ -214,6 +219,9 @@ function Todos({ user, onLogout }) {
                 todos={paginatedTodos}
                 onDeleteTodo={handleDeleteTodo}
                 onEditTodo={startEditing}
+                onToggleTodo={(todo) =>
+                  toggleTodoMutation.mutate({ id: todo.id, completed: !todo.completed })
+                }
               />
 
               {sourceTodos.length > 0 && (

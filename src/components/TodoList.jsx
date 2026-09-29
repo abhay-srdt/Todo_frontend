@@ -1,6 +1,6 @@
 import TodoItem from "./TodoItem"
 
-function TodoList({ todos , onDeleteTodo , onEditTodo}) {
+function TodoList({ todos, onDeleteTodo, onEditTodo, onToggleTodo }) {
   if (todos.length === 0) {
     return (
       <p className="py-8 text-center text-gray-500">
@@ -14,6 +14,7 @@ function TodoList({ todos , onDeleteTodo , onEditTodo}) {
       <table className="min-w-full border border-gray-300">
         <thead>
           <tr className="bg-gray-100">
+            <th className="border px-4 py-2">Done</th>
             <th className="border px-4 py-2">Created At</th>
             <th className="border px-4 py-2">Title</th>
             <th className="border px-4 py-2">Description</th>
@@ -29,6 +30,7 @@ function TodoList({ todos , onDeleteTodo , onEditTodo}) {
               todo={todo}
               onDeleteTodo={onDeleteTodo}
               onEditTodo={onEditTodo}
+              onToggleTodo={onToggleTodo}
             />
           ))}
         </tbody>

@@ -36,3 +36,8 @@ export async function getTodosByUser(userId){
   const response = await api.get(`/todos/user/${userId}`)
   return response.data;
 }
+
+export async function setTodoCompleted(id, completed) {
+  const response = await api.put(`/todos/${id}/completed`, { completed })
+  return response.data
+}

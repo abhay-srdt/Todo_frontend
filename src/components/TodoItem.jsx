@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom"
 import { useDispatch } from "react-redux"
 import { setSelectedTodo } from "../features/ui/Selectedtodoslice"
 
-function TodoItem({ todo, onDeleteTodo, onEditTodo }) {
+function TodoItem({ todo, onDeleteTodo, onEditTodo, onToggleTodo }) {
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
@@ -11,21 +11,34 @@ function TodoItem({ todo, onDeleteTodo, onEditTodo }) {
     navigate("/viewTodo")
   }
 
+  // Completed rows: faded, with the text struck through
+  const doneStyle = todo.completed ? "text-gray-400 line-through" : ""
+
   return (
-    <tr>
-      <td className="border px-4 py-2">
+    <tr className={todo.completed ? "bg-gray-50" : ""}>
+      <td className="border px-4 py-2 text-center">
+        <input
+          type="checkbox"
+          checked={Boolean(todo.completed)}
+          onChange={() => onToggleTodo(todo)}
+          aria-label={`Mark "${todo.title}" as done`}
+          className="h-4 w-4 cursor-pointer"
+        />
+      </td>
+
+      <td className={`border px-4 py-2 ${doneStyle}`}>
         {todo.date}
       </td>
 
-      <td className="border px-4 py-2 font-medium">
+      <td className={`border px-4 py-2 font-medium ${doneStyle}`}>
         {todo.title}
       </td>
 
-      <td className="border px-4 py-2">
+      <td className={`border px-4 py-2 ${doneStyle}`}>
         {todo.description}
       </td>
 
-      <td className="border px-4 py-2">
+      <td className={`border px-4 py-2 ${doneStyle}`}>
         {todo.dueDate}
       </td>
 
