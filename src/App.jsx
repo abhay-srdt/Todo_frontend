@@ -5,6 +5,7 @@ import Todos from "./pages/Todos"
 import { Routes, Route, Navigate } from "react-router-dom"
 import ViewTodo from "./pages/ViewTodo"
 import Callback from "./pages/Callback"
+import Profile from "./pages/Profile"
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -21,11 +22,12 @@ function App() {
   })
 
   function logout() {
-  localStorage.removeItem("user")
-  localStorage.removeItem("auth")
-  setUser(null)
-  window.location.href = "http://localhost:9000/logout"
-}
+    localStorage.removeItem("user")
+    localStorage.removeItem("auth")
+    setUser(null)
+    window.location.href = "http://localhost:9000/logout"
+  }
+
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
@@ -36,6 +38,10 @@ function App() {
         element={
           user ? <Todos user={user} onLogout={logout} /> : <Navigate to="/login" />
         }
+      />
+      <Route
+        path="/profile"
+        element={user ? <Profile /> : <Navigate to="/login" />}
       />
       <Route path="/callback" element={<Callback onLogin={setUser} />} />
       <Route

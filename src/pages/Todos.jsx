@@ -9,7 +9,7 @@ import { setPage, resetPage } from "../features/ui/PaginationSlice"
 import { getTodosByDate, getTodosByUser, createTodoForUser, updateTodoById, deleteTodoById } from "../services/todoService"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { todoKeys } from "../features/todos/todoQueries"
-
+import ProfileButton from "../components/ProfileButton"
 const PAGE_SIZE = 5
 
 function Todos({ user, onLogout }) {
@@ -132,7 +132,10 @@ function Todos({ user, onLogout }) {
         </h1>
 
         <div className="mb-4 flex justify-between items-center">
-          <p>Welcome, {user.name}</p>
+          <div className="flex items-center gap-3">
+            <ProfileButton name={user.name} />
+            <p>Welcome, {user.name}</p>
+          </div>
 
           <button
             onClick={onLogout}
