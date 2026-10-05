@@ -10,8 +10,6 @@ function TodoItem({ todo, onDeleteTodo, onEditTodo, onToggleTodo }) {
     dispatch(setSelectedTodo(todo))
     navigate("/viewTodo")
   }
-
-  // Completed rows: faded, with the text struck through
   const doneStyle = todo.completed ? "text-gray-400 line-through" : ""
 
   return (
